@@ -3,67 +3,106 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-# Initialize MediaPipe utilities
+# Define the path to the hand landmarker model
+model_path = "hand_landmarker.task"
+
+# Initialize MediaPipe classes
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
 
-# Path to the hand landmarker model
-model_path = 'hand_landmarker.task'
+# Function to draw landmarks and connections on the image
+def draw_landmarks_on_image(image, hand_landmarks):
+    # Define colors for each finger
+    colors = {
+        "thumb": (255, 0, 0),       # Blue
+        "index": (0, 255, 0),       # Green
+        "middle": (0, 0, 255),      # Red
+        "ring": (255, 255, 0),      # Cyan
+        "pinky": (255, 0, 255)      # Magenta
+    }
 
-# Configure the hand landmarker
+    # Define finger connections
+    connections = [
+        (0, 1), (1, 2), (2, 3), (3, 4),   # Thumb
+        (0, 5), (5, 6), (6, 7), (7, 8),   # Index
+        (0, 9), (9, 10), (10, 11), (11, 12),  # Middle
+        (0, 13), (13, 14), (14, 15), (15, 16),  # Ring
+        (0, 17), (17, 18), (18, 19), (19, 20)   # Pinky
+    ]
+
+    # Iterate through detected hands
+    for hand in hand_landmarks:
+        # Draw circles for landmarks
+        for landmark in hand:
+            x = int(landmark.x * image.shape[1])
+            y = int(landmark.y * image.shape[0])
+            cv2.circle(image, (x, y), 5, (0, 255, 0), -1)
+        
+        # Draw connections for each finger
+        for start_idx, end_idx in connections:
+            start_point = hand[start_idx]
+            end_point = hand[end_idx]
+
+            # Get pixel coordinates
+            start_x = int(start_point.x * image.shape[1])
+            start_y = int(start_point.y * image.shape[0])
+            end_x = int(end_point.x * image.shape[1])
+            end_y = int(end_point.y * image.shape[0])
+
+            # Assign color based on finger
+            if start_idx in range(1, 5):  # Thumb
+                color = colors["thumb"]
+            elif start_idx in range(5, 9):  # Index
+                color = colors["index"]
+            elif start_idx in range(9, 13):  # Middle
+                color = colors["middle"]
+            elif start_idx in range(13, 17):  # Ring
+                color = colors["ring"]
+            else:  # Pinky
+                color = colors["pinky"]
+
+            # Draw line
+            cv2.line(image, (start_x, start_y), (end_x, end_y), color, 2)
+
+# Create hand landmarker options
 options = HandLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=model_path),
-    running_mode=VisionRunningMode.IMAGE,  # Set to IMAGE mode for simplicity
-    num_hands=2,
-    min_hand_detection_confidence=0.5,
-    min_hand_presence_confidence=0.5
+    running_mode=VisionRunningMode.IMAGE
 )
 
-# Create the hand landmarker instance
+# Initialize the hand landmarker
 with HandLandmarker.create_from_options(options) as landmarker:
-    # Start capturing video from the webcam
+    # Open the webcam
     cap = cv2.VideoCapture(0)
-
-    while cap.isOpened():
+    
+    while True:
         ret, frame = cap.read()
         if not ret:
-            print("Failed to capture frame. Exiting.")
+            print("Failed to capture frame. Exiting...")
             break
 
-        # Convert frame to RGB as MediaPipe expects
+        # Convert the frame to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Create MediaPipe Image object
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
 
-        # Perform hand landmarks detection
         try:
+            # Detect hand landmarks
             result = landmarker.detect(mp_image)
 
-            # Draw landmarks on the frame
+            # Draw landmarks and connections on the frame
             if result.hand_landmarks:
-                for idx, hand_landmark in enumerate(result.hand_landmarks):
-                    print(f"Hand {idx + 1}:")
-                    for i, landmark in enumerate(hand_landmark):
-                        print(f"Landmark {i}: x={landmark.x}, y={landmark.y}, z={landmark.z}")
-
-                    # Draw landmarks on the image
-                    mp_drawing.draw_landmarks(
-                        frame,
-                        hand_landmark,
-                        mp.solutions.hands.HAND_CONNECTIONS,
-                        mp_drawing_styles.get_default_hand_landmarks_style(),
-                        mp_drawing_styles.get_default_hand_connections_style(),
-                    )
+                draw_landmarks_on_image(frame, result.hand_landmarks)
         except Exception as e:
             print(f"Error during detection: {e}")
 
-        # Display the frame with landmarks
+        # Display the frame
         cv2.imshow("Hand Landmarks", frame)
 
-        # Break the loop on 'q' key press
+        # Exit on pressing 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
