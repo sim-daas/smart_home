@@ -86,9 +86,9 @@ The system is divided into the following components:
     ```
 2.  **Run the Gesture Publisher on your Laptop**
     ```bash
-        source /opt/ros/humble/setup.bash
-        cd smart_home
-        python3 gesture-pub.py
+    source /opt/ros/humble/setup.bash
+    cd smart_home
+    python3 gesture-pub.py
     ```
 
 3.  **Run the Subscriber Node on Raspberry Pi (Inside Docker container)**
@@ -114,6 +114,8 @@ The system is divided into the following components:
 *   Ensure all necessary dependencies are installed.
 *   Verify network connectivity between the laptop and Raspberry Pi.
 *   Adjust the GPIO pin in `rasp_final.py` to match your wiring setup.
-*  It is recommended to use the "ROS 2 base install" when setting up ROS on your system to avoid potential conflicts with the full desktop install
+*   It is recommended to use the "ROS 2 base install" when setting up ROS on your system to avoid potential conflicts with the full desktop install
 
-This setup provides a foundation for building more complex smart home controls. By integrating clap detection, you can extend the system further.
+#### **7. Future Plans**
+
+*  Add logic within `rasp_final.py` to control the LED strip based on clapping data
